@@ -60,8 +60,13 @@ class MFRecommender(BaseFedModel):
                 raise NotImplementedError("Not Sparse is Not Implemented")
 
     def update_with_perturbed(self, update):
-        self.global_model = self.global_model - self.fed_config.lr_init * \
+        if self.model_config.do_kron:
+            self.global_model = self.global_model - self.fed_config.lr_init * \
                             (self.fed_config.regularization * self.global_model + update[0])
+        else:
+            self.global_model = self.global_model - self.fed_config.lr_init * \
+                                (self.fed_config.regularization * self.global_model + np.outer(update[0], update[1]))
+
 
     def predict(self, user_id, **kwargs):
         Cui, Pu = kwargs["Cui"], kwargs["Pu"]
