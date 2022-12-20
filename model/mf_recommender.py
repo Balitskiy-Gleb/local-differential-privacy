@@ -26,6 +26,8 @@ class MFRecommender(BaseFedModel):
                                                size=(self.model_config.n_factors,
                                                     self.model_config.n_users))
         self.model = (self.global_model, self.local_model)
+        self.final_update = np.zeros((self.model_config.n_factors,
+                                                self.model_config.n_items))
 
     def update_model_locally(self, **kwargs):
         Cui, Pu = kwargs["Cui"], kwargs["Pu"]
@@ -60,13 +62,15 @@ class MFRecommender(BaseFedModel):
                 raise NotImplementedError("Not Sparse is Not Implemented")
 
     def update_with_perturbed(self, update):
-        if self.model_config.do_kron:
-            self.global_model = self.global_model - self.fed_config.lr_init * \
-                            (self.fed_config.regularization * self.global_model + update[0])
-        else:
-            self.global_model = self.global_model - self.fed_config.lr_init * \
-                                (self.fed_config.regularization * self.global_model + np.outer(update[0], update[1]))
+        self.global_model = self.global_model - self.fed_config.lr_init * \
+                        (self.fed_config.regularization * self.global_model + self.final_update)
+        self.final_update = self.final_update * 0.0
 
+    def aggregate(self, perturbed_updates):
+        if self.model_config.do_kron:
+            self.final_update = self.final_update + perturbed_updates[0]
+        else:
+            self.final_update = self.final_update + np.outer(perturbed_updates[0], perturbed_updates[1])
 
     def predict(self, user_id, **kwargs):
         Cui, Pu = kwargs["Cui"], kwargs["Pu"]

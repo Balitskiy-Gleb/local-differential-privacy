@@ -55,13 +55,9 @@ class Federation:
         for user_id in tqdm(range(self.model.model_config.n_users), desc="Train User Id: "):
             user_updates = self.model.compute_update_one_user(user_id, **kwargs)
             for up_i, user_up in enumerate(user_updates):
-                if user_id == 0:
-                    self.temp_updates[up_i] = self.ldp_mechanisms[up_i].encode(user_up)
-                    self.perturbed_updates[up_i] = self.ldp_mechanisms[up_i].decode(self.temp_updates[up_i])
-                else:
-                    self.temp_updates[up_i] = self.ldp_mechanisms[up_i].encode(user_up)
-                    self.perturbed_updates[up_i] += self.ldp_mechanisms[up_i].decode(self.temp_updates[up_i])
-
+                self.temp_updates[up_i] = self.ldp_mechanisms[up_i].encode(user_up)
+                self.perturbed_updates[up_i] = self.ldp_mechanisms[up_i].decode(self.temp_updates[up_i])
+            self.model.aggregate(self.perturbed_updates)
         for up_i, per_up in enumerate(self.perturbed_updates):
             self.perturbed_updates[up_i] = self.ldp_mechanisms[up_i].normalize(per_up)
         self.model.update_with_perturbed(self.perturbed_updates)
